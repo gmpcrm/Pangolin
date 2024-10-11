@@ -11,6 +11,7 @@ DRYRUN=0
 UPDATE=0
 REQUIRED_RECOMMENDED_ALL=1
 SUDO=""
+CATCH2=0
 
 PKGS_UPDATE=""
 PKGS_REQUIRED=()
@@ -47,14 +48,19 @@ while (( "$#" )); do
         exit 1
       fi
       ;;
+    --catch2)
+      CATCH2=1
+      shift
+      ;;
     -h|--help)
-      echo "$0 [-vh] [-m package-manager-list] [required|recommended|all]"
+      echo "$0 [-vh] [-m package-manager-list] [required|recommended|all] [--catch2]"
       echo "  -m, --package-manager:     preferred package manager order (default: \"${MANAGERS[*]}\")"
       echo "  -v, --verbose:             verbose output"
       echo "  -d, --dry-run:             print actions, but do not execute"
       echo "  -l, --list:                just list the packages to install"
       echo "  -u, --update-package-list: update package manager package list"
       echo "  -h, --help:                this help message"
+      echo "  --catch2:                  install Catch2 testing framework"
       echo " (required|recommended|all) the set of dependencies to select."
       exit 0
       ;;
@@ -121,17 +127,19 @@ if [[ "$MANAGER" == "apt" ]]; then
     if ((DRYRUN > 0));  then PKGS_OPTIONS+=(--dry-run); SUDO=""; fi
     PKGS_REQUIRED+=(libgl1-mesa-dev libwayland-dev libxkbcommon-dev wayland-protocols libegl1-mesa-dev)
     PKGS_REQUIRED+=(libc++-dev libepoxy-dev libglew-dev libeigen3-dev cmake g++ ninja-build)
-    PKGS_RECOMMENDED+=(libjpeg-dev libpng-dev catch2)
+    PKGS_RECOMMENDED+=(libjpeg-dev libpng-dev)
     PKGS_RECOMMENDED+=(libavcodec-dev libavutil-dev libavformat-dev libswscale-dev libavdevice-dev)
     PKGS_ALL+=(libdc1394-dev libraw1394-dev libopenni-dev python3-dev)
+    if ((CATCH2 > 0)); then PKGS_RECOMMENDED+=(catch2); fi
 elif [[ "$MANAGER" == "dnf" ]]; then
     SUDO="sudo"
     PKGS_UPDATE="dnf check-update"
     PKGS_OPTIONS+=(install)
     PKGS_REQUIRED+=(wayland-devel libxkbcommon-devel g++ ninja-build)
     PKGS_REQUIRED+=(epoxy-devel eigen3 cmake)
-    PKGS_RECOMMENDED+=(libjpeg-devel libpng-devel OpenEXR-devel catch2)
+    PKGS_RECOMMENDED+=(libjpeg-devel libpng-devel OpenEXR-devel)
     PKGS_ALL+=(libdc1394-devel libraw1394-devel librealsense-devel openni-devel)
+    if ((CATCH2 > 0)); then PKGS_RECOMMENDED+=(catch2); fi
     if ((DRYRUN > 0));  then
         MANAGER="echo $MANAGER"
         SUDO=""
@@ -143,6 +151,7 @@ elif [[ "$MANAGER" == "pacman" ]]; then
     PKGS_REQUIRED+=(mesa wayland libxkbcommon wayland-protocols libc++ glew eigen cmake gcc ninja)
     PKGS_RECOMMENDED+=(libjpeg-turbo libpng ffmpeg)
     PKGS_ALL+=(libdc1394 libraw1394 openni python3)
+    if ((CATCH2 > 0)); then PKGS_RECOMMENDED+=(catch2); fi
     if ((DRYRUN > 0));  then
         MANAGER="echo $MANAGER"
         SUDO=""
@@ -153,13 +162,15 @@ elif [[ "$MANAGER" == "port" ]]; then
     if ((DRYRUN > 0));  then PKGS_OPTIONS+=(-y); SUDO=""; fi
     PKGS_OPTIONS+=(-N install -q)
     PKGS_REQUIRED+=(glew eigen3-devel cmake +gui ninja)
-    PKGS_RECOMMENDED+=(libjpeg-turbo libpng openexr tiff ffmpeg-devel lz4 zstd py37-pybind11 catch2)
+    PKGS_RECOMMENDED+=(libjpeg-turbo libpng openexr tiff ffmpeg-devel lz4 zstd py37-pybind11)
     PKGS_ALL+=(libdc1394 openni)
+    if ((CATCH2 > 0)); then PKGS_RECOMMENDED+=(catch2); fi
 elif [[ "$MANAGER" == "brew" ]]; then
     PKGS_OPTIONS+=(install)
     if ((VERBOSE > 0)); then PKGS_OPTIONS+=(--verbose); fi
     PKGS_REQUIRED+=(glew eigen cmake ninja)
-    PKGS_RECOMMENDED+=(libjpeg-turbo libpng openexr libtiff ffmpeg lz4 zstd catch2)
+    PKGS_RECOMMENDED+=(libjpeg-turbo libpng openexr libtiff ffmpeg lz4 zstd)
+    if ((CATCH2 > 0)); then PKGS_RECOMMENDED+=(catch2); fi
     # Brew doesn't have a dryrun option
     if ((DRYRUN > 0));  then
         MANAGER="echo $MANAGER"
@@ -169,8 +180,9 @@ elif [[ "$MANAGER" == "vcpkg" ]]; then
     PKGS_OPTIONS+=(install --triplet=x64-windows )
     if ((DRYRUN > 0));  then PKGS_OPTIONS+=(--dry-run); fi
     PKGS_REQUIRED+=(glew eigen3 vcpkg-tool-ninja)
-    PKGS_RECOMMENDED+=(libjpeg-turbo libpng openexr tiff ffmpeg lz4 zstd python3 Catch2)
+    PKGS_RECOMMENDED+=(libjpeg-turbo libpng openexr tiff ffmpeg lz4 zstd python3)
     PKGS_ALL+=(openni2 realsense2)
+    if ((CATCH2 > 0)); then PKGS_RECOMMENDED+=(Catch2); fi
 else
     echo "Error: Don't know how to use \"$MANAGER\", please fix the script." >&2
     exit 1
